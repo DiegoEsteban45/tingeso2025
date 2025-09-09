@@ -6,10 +6,16 @@ import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.Keys;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Component;
 import java.security.Key;
 import java.util.Date;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 
 /**
  * JwtUtils es una clase de utilidad para trabajar con JSON Web Tokens (JWT) en Spring Boot.
@@ -50,20 +56,26 @@ public class JwtUtils {
     @Value("${jwt.time.expiration}")
     private String timeExpiration;
 
-    /**
-     * Genera un token JWT de acceso para un username dado.
-     *
-     * @param username nombre del usuario que se guardará en el claim "sub" (subject)
-     * @return token JWT firmado en formato String
-     */
-    public String generateAccesToken(String username){
+
+     //Genera un token JWT de acceso para un username dado.
+    public String generateAccesToken(UserDetails userDetails) {
+        Map<String, Object> claims = new HashMap<>();
+
+        // Guardamos los roles en el JWT
+        claims.put("roles", userDetails.getAuthorities()
+                .stream()
+                .map(GrantedAuthority::getAuthority) // ROLE_ADMIN, ROLE_CUSTOMER, etc
+                .collect(Collectors.toList()));
+
         return Jwts.builder()
-                .setSubject(username) // Claim "sub" = username
-                .setIssuedAt(new Date(System.currentTimeMillis())) // Fecha de creación
-                .setExpiration(new Date(System.currentTimeMillis() + Long.parseLong(timeExpiration))) // Expiración
-                .signWith(getSignatureKey(), SignatureAlgorithm.HS256) // Firma con HS256
-                .compact(); // Genera el token en formato String
+                .setClaims(claims)
+                .setSubject(userDetails.getUsername()) // username
+                .setIssuedAt(new Date(System.currentTimeMillis()))
+                .setExpiration(new Date(System.currentTimeMillis() + Long.parseLong(timeExpiration)))
+                .signWith(getSignatureKey(), SignatureAlgorithm.HS256)
+                .compact();
     }
+
 
     /**
      * Valida si un token JWT es válido.
@@ -134,6 +146,16 @@ public class JwtUtils {
     public Key getSignatureKey(){
         byte[] keyBytes = Decoders.BASE64.decode(secretKey);
         return Keys.hmacShaKeyFor(keyBytes);
+    }
+
+    public List<String> getRolesFromToken(String token) {
+        Claims claims = Jwts.parser()
+                .setSigningKey(getSignatureKey())
+                .build()
+                .parseClaimsJws(token)
+                .getBody();
+
+        return claims.get("roles", List.class);
     }
 }
 

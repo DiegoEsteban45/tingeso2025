@@ -14,11 +14,6 @@ public class UserService {
     private UserRepository userRepository;
 
     public boolean createUser(UserEntity user) {
-        // Validar si el username ya existe
-        if (userRepository.existsByUsername(user.getUsername())) {
-            return false;
-        }
-
         // Validar si el email ya existe
         if (userRepository.existsByEmail(user.getEmail())) {
             return false;

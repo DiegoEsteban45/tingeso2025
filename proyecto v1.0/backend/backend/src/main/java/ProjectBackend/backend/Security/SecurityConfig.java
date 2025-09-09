@@ -9,6 +9,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
+import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
@@ -18,9 +19,11 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.AuthenticationSuccessHandler;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
 @Configuration
 @EnableWebSecurity
+@EnableMethodSecurity(prePostEnabled = true)
 public class SecurityConfig {
 
     @Autowired
@@ -28,6 +31,9 @@ public class SecurityConfig {
 
     @Autowired
     private UserDetailsServiceImpl userDetailsService;
+
+    @Autowired
+    JwtAuthorizationFilter jwtAuthorizationFilter;
 
     // Bean para encriptar contraseñas
     @Bean
@@ -63,19 +69,16 @@ public class SecurityConfig {
         jwtAuthenticationFilter.setAuthenticationManager(authenticationManager);
         jwtAuthenticationFilter.setFilterProcessesUrl("/login"); // Endpoint de login
 
-        // Filtro de autorización JWT (verifica token en cada request)
-        JwtAuthorizationFilter jwtAuthorizationFilter = new JwtAuthorizationFilter(jwtUtils, userDetailsService);
 
         return http
-                // No usamos sesiones para JWT
+                // No se usan sesiones para JWT
                 .csrf(csrf -> csrf.disable())
                 .sessionManagement(session -> session
                         .sessionCreationPolicy(SessionCreationPolicy.STATELESS)
                 )
                 // Rutas públicas y protegidas
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/v1/index2").permitAll()
-                        .requestMatchers("/login").permitAll()
+                        .requestMatchers("/api/customers/register").permitAll()
                         .anyRequest().authenticated()
                 )
                 // Logout opcional (JWT se maneja en frontend)
@@ -85,7 +88,7 @@ public class SecurityConfig {
                 )
                 // Registramos los filtros
                 .addFilter(jwtAuthenticationFilter) // login
-                .addFilterBefore(jwtAuthorizationFilter, JwtAuthenticationFilter.class) // autorización
+                .addFilterBefore(jwtAuthorizationFilter, UsernamePasswordAuthenticationFilter.class) // autorización
                 .build();
     }
 }

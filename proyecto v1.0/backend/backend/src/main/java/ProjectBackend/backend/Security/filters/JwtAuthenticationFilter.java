@@ -4,10 +4,10 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import ProjectBackend.backend.Security.jwt.JwtUtils;
 import org.springframework.http.HttpStatus;
@@ -28,15 +28,15 @@ public class JwtAuthenticationFilter extends UsernamePasswordAuthenticationFilte
     @Override
     public Authentication attemptAuthentication(HttpServletRequest request,
                                                 HttpServletResponse response) throws AuthenticationException {
-
         try {
-            // Mapea JSON body a un objeto simple con username/password
+            // Mapeamos el JSON body a un Map
             Map<String, String> creds = new ObjectMapper().readValue(request.getInputStream(), Map.class);
-            String username = creds.get("username");
+            String email = creds.get("email");      // <-- usamos email en lugar de username
             String password = creds.get("password");
 
+            // Creamos el token de autenticación con email y password
             UsernamePasswordAuthenticationToken authToken =
-                    new UsernamePasswordAuthenticationToken(username, password);
+                    new UsernamePasswordAuthenticationToken(email, password);
 
             return getAuthenticationManager().authenticate(authToken);
 
@@ -51,18 +51,38 @@ public class JwtAuthenticationFilter extends UsernamePasswordAuthenticationFilte
                                             FilterChain chain,
                                             Authentication authResult) throws IOException {
 
-        String username = authResult.getName();
-        String token = jwtUtils.generateAccesToken(username);
+        // Obtenemos UserDetails
+        UserDetails userDetails = (UserDetails) authResult.getPrincipal();
 
-        // Retornamos JSON con token
+        // Generamos token JWT con roles incluidos
+        String token = jwtUtils.generateAccesToken(userDetails);
+
+        // Creamos la respuesta JSON
         Map<String, Object> tokenMap = new HashMap<>();
         tokenMap.put("token", token);
-        tokenMap.put("username", username);
+        tokenMap.put("email", userDetails.getUsername()); // <-- retornamos email
+        tokenMap.put("roles", userDetails.getAuthorities());
         tokenMap.put("message", "Authentication Successful");
 
         response.setContentType(MediaType.APPLICATION_JSON_VALUE);
         response.setStatus(HttpStatus.OK.value());
         new ObjectMapper().writeValue(response.getOutputStream(), tokenMap);
     }
+
+    @Override
+    protected void unsuccessfulAuthentication(HttpServletRequest request,
+                                              HttpServletResponse response,
+                                              AuthenticationException failed) throws IOException {
+
+        // Respuesta en caso de error de autenticación
+        Map<String, Object> errorMap = new HashMap<>();
+        errorMap.put("message", "Authentication Failed");
+        errorMap.put("error", failed.getMessage());
+
+        response.setContentType(MediaType.APPLICATION_JSON_VALUE);
+        response.setStatus(HttpStatus.UNAUTHORIZED.value());
+        new ObjectMapper().writeValue(response.getOutputStream(), errorMap);
+    }
 }
+
 
