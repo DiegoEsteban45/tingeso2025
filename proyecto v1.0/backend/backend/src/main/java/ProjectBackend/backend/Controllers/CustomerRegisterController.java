@@ -2,6 +2,7 @@ package ProjectBackend.backend.Controllers;
 
 
 import ProjectBackend.backend.Entities.ERole;
+import ProjectBackend.backend.Repositories.CustomerUserRepository;
 import ProjectBackend.backend.Services.registration.CustomerRegisterStrategyService;
 import ProjectBackend.backend.dto.request.CustomerUserRequestDTO;
 import ProjectBackend.backend.dto.request.UserRequestDTO;
@@ -36,7 +37,8 @@ public class CustomerRegisterController {
                 dto.getRut()
         );
 
-        UserResponseDTO response = customerRegisterStrategy.register(userRequest);
+        UserResponseDTO response = customerRegisterStrategy.registerUser(userRequest);
+        customerRegisterStrategy.registerCustomer(dto,userRequest);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 }

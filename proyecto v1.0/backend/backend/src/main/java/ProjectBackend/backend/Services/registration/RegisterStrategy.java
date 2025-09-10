@@ -5,5 +5,5 @@ import ProjectBackend.backend.dto.response.UserResponseDTO;
 
 
 public interface RegisterStrategy {
-    UserResponseDTO register(UserRequestDTO dto);
+    UserResponseDTO registerUser(UserRequestDTO dto);
 }

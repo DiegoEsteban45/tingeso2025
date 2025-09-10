@@ -1,17 +1,21 @@
 package ProjectBackend.backend.Services.registration;
 
-import ProjectBackend.backend.Entities.ERole;
-import ProjectBackend.backend.Entities.RoleEntity;
-import ProjectBackend.backend.Entities.UserEntity;
+import ProjectBackend.backend.Entities.*;
+import ProjectBackend.backend.Repositories.CustomerUserRepository;
 import ProjectBackend.backend.Repositories.RoleRepository;
 import ProjectBackend.backend.Repositories.UserRepository;
+import ProjectBackend.backend.dto.request.CustomerUserRequestDTO;
 import ProjectBackend.backend.dto.request.UserRequestDTO;
+import ProjectBackend.backend.dto.response.CustomerUserResponseDTO;
 import ProjectBackend.backend.dto.response.UserResponseDTO;
 import lombok.Data;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import java.math.BigDecimal;
+import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.Set;
 
 @Data
@@ -22,19 +26,22 @@ public class CustomerRegisterStrategyService implements RegisterStrategy {
     private UserRepository userRepository;
 
     @Autowired
+    private CustomerUserRepository customerUserRepository;
+
+    @Autowired
     private PasswordEncoder passwordEncoder;
 
     @Autowired
     private RoleRepository roleRepository;
 
     @Override
-    public UserResponseDTO register(UserRequestDTO dto) {
-        // Validar email o username ya existente
+    public UserResponseDTO registerUser(UserRequestDTO dto) {
+        // Validar email
         if (userRepository.existsByEmail(dto.getEmail())) {
             throw new IllegalArgumentException("Email already in use");
         }
 
-        // Verificar password confirm (si tienes CustomerUserRequestDTO)
+        // Verificar password confirm
         if (!dto.getPassword().equals(dto.getPasswordConfirm())) {
             throw new IllegalArgumentException("Passwords do not match");
         }
@@ -62,5 +69,27 @@ public class CustomerRegisterStrategyService implements RegisterStrategy {
                 .rut(user.getRut())
                 .message("Customer registered successfully")
                 .build();
+    }
+
+    public void registerCustomer(CustomerUserRequestDTO cUdto, UserRequestDTO dto) {
+
+        UserEntity user = userRepository.findByEmail(dto.getEmail())
+                .orElseThrow(() -> new IllegalArgumentException("User not found: " + dto.getEmail()));
+
+        CustomerEntity customerUser = CustomerEntity.builder()
+                .user(user)
+                .fullName(cUdto.getUsername())
+                .rut(cUdto.getRut())
+                .address(cUdto.getAddress())
+                .phone(cUdto.getPhone())
+                .status(CustomerStatus.ACTIVE)
+                .activeLoans(0)
+                .outstandingDebt(BigDecimal.ZERO)
+                .systemBlocked(false)
+                .notes("")
+                .loans(new ArrayList<>())
+                .build();
+
+        customerUserRepository.save(customerUser);
     }
 }

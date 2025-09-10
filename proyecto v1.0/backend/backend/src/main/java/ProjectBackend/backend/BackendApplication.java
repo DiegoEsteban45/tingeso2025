@@ -83,7 +83,7 @@ public class BackendApplication {
             if (userRepository.findByEmail(user2.getEmail()).isEmpty()) userRepository.save(user2);
             if (userRepository.findByEmail(user3.getEmail()).isEmpty()) userRepository.save(user3);
 
-            System.out.println("Roles y usuarios iniciales cargados correctamente 🚀");
+            System.out.println("Roles y usuarios iniciales cargados correctamente");
         };
     }
 }

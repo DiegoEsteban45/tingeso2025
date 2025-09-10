@@ -28,8 +28,9 @@ public class AdminRegisterController {
     public ResponseEntity<UserResponseDTO> registerUserByAdmin(
             @Valid @RequestBody UserRequestDTO dto) {
 
-        UserResponseDTO response = adminRegisterStrategy.register(dto);
+        UserResponseDTO response = adminRegisterStrategy.registerUser(dto);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
+
 }
 

@@ -29,15 +29,11 @@ public class AdminRegisterStrategyService implements RegisterStrategy {
     private PasswordEncoder passwordEncoder;
 
     @Override
-    public UserResponseDTO register(UserRequestDTO dto) {
+    public UserResponseDTO registerUser(UserRequestDTO dto) {
         // Validar email o username ya existente
         if (userRepository.existsByEmail(dto.getEmail())) {
             throw new IllegalArgumentException("Email already in use");
         }
-        if (userRepository.existsByUsername(dto.getUsername())) {
-            throw new IllegalArgumentException("Username already in use");
-        }
-
         // Mapear roles enviados a RoleEntity
         Set<RoleEntity> roles = dto.getRoles().stream()
                 .map(roleName -> {
